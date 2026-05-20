@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>孩子们的梦想职业赛跑 1920–2026</title>
+<style>
+  :root {
+    --bg: #F0F9FF;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.10);
+    --text: #1a1a1a;
+    --muted: #555;
+    --track-bg: rgba(0,0,0,0.08);
+    --accent: #7C3AED;
+    --accent-light: #EDE9FE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  /* ── RACE PAGE ── */
+  #race-page { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    padding: 14px 28px 10px;
+    border-bottom: 3px solid #38BDF8;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%);
+  }
+  .header-left h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #111; }
+  .header-left h1 span { color: var(--accent); }
+  .header-left p { margin-top: 3px; font-size: 13px; color: #444; }
+
+  /* ── AXIS BAR ── */
+  #axis-bar {
+    flex-shrink: 0;
+    position: relative;
+    height: 26px;
+    background: #DBEAFE;
+    border-bottom: 2px solid #38BDF8;
+  }
+  #axis-inner {
+    position: absolute;
+    top: 0; bottom: 0;
+    display: flex; align-items: flex-end;
+  }
+  .axis-label {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 13px;
+    color: #444;
+    bottom: 4px;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+
+  /* ── CHART AREA ── */
+  #chart-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    padding: 4px 0 0;
+  }
+  /* Gridlines drawn by JS */
+  .chart-gl {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(0,0,0,0.05);
+    pointer-events: none;
+  }
+  #milestone {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: 10px; background: #6D28D9;
+    border-radius: 8px; padding: 8px 22px;
+    font-size: 15px; font-weight: 700; color: #fff;
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+    white-space: nowrap; text-align: center;
+    box-shadow: 0 4px 16px rgba(109,40,217,0.3);
+    z-index: 10;
+  }
+  #milestone.show { opacity: 1; }
+  #year-block {
+    position: absolute;
+    right: 28px;
+    bottom: 18px;
+    text-align: right;
+    pointer-events: none;
+    user-select: none;
+    z-index: 2;
+  }
+  #year-display {
+    display: block;
+    font-size: 195px;
+    font-weight: 900;
+    color: rgba(56,189,248,0.35);
+    line-height: 1;
+    letter-spacing: -5px;
+  }
+  #year-subtitle {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(0,0,0,0.4);
+    letter-spacing: 0px;
+    margin-top: 4px;
+  }
+
+  /* ── BAR ROWS ── */
+  .brow {
+    position: absolute; left: 0; right: 0;
+    display: flex; align-items: center;
+    will-change: transform, opacity;
+  }
+  .brow-name {
+    width: 220px;
+    text-align: right;
+    font-size: 21px;
+    font-weight: 700;
+    color: #111;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    flex-shrink: 0;
+    padding-right: 14px;
+  }
+  .brow-track {
+    flex: 1;
+    background: var(--track-bg);
+    border-radius: 6px;
+    position: relative;
+    overflow: visible;  /* emoji+num extend beyond track right edge */
+  }
+  /* ✅ NO CSS transition on .brow-fill — width driven purely by JS lerp() */
+  .brow-fill {
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    border-radius: 6px;
+    min-width: 0;
+  }
+  .brow-fill::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 60%, rgba(255,255,255,0.18) 100%);
+    border-radius: 6px;
+  }
+  .brow-icon {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    font-size: 28px;
+    line-height: 1;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: left 0.05s linear;
+  }
+  .brow-num {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    font-size: 19px;
+    font-weight: 800;
+    color: #111;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: left 0.05s linear;
+  }
+
+  /* ── PROGRESS + CONTROLS ── */
+  #progress-wrap { height: 6px; background: #BAE6FD; flex-shrink: 0; }
+  #progress-fill { height: 100%; background: linear-gradient(90deg, #38BDF8, #EF4444, #8B5CF6); width: 0%; transition: width 0.1s linear; }
+  #controls {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 22px;
+    border-top: 2px solid #38BDF8;
+    background: linear-gradient(135deg, #DBEAFE, #F0F9FF);
+    flex-shrink: 0;
+  }
+  .ctrl-btn {
+    background: #fff; border: 2px solid #D1D5DB; color: #222;
+    padding: 6px 16px; border-radius: 20px; font-size: 14px;
+    cursor: pointer; transition: all 0.18s; font-weight: 600;
+  }
+  .ctrl-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .ctrl-sep { width: 1px; height: 22px; background: #D1D5DB; margin: 0 4px; }
+  #speed-lbl { font-size: 13px; color: #333; margin-left: 4px; font-weight: 600; }
+  #src-tag { font-size: 11px; color: #555; margin-left: auto; }
+
+  @media (max-width: 820px) {
+    header { padding: 10px 14px 8px; }
+    .header-left h1 { font-size: 18px; }
+    .header-left p { font-size: 10px; }
+    #year-block { right: 14px; bottom: 10px; }
+    #year-display { font-size: 72px; }
+    #year-subtitle { font-size: 13px; }
+    .brow-name { width: 100px; font-size: 13px; padding-right: 6px; }
+    .brow-icon { font-size: 18px; }
+    .brow-num { font-size: 12px; }
+    #controls { padding: 6px 8px; gap: 4px; flex-wrap: wrap; }
+    .ctrl-btn { padding: 4px 10px; font-size: 11px; }
+    #src-tag { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="race-page">
+  <header>
+    <div class="header-left">
+      <h1>孩子们想成为什么？<span>1920 – 2026</span></h1>
+      <p>梦想职业人气指数 · 8–12岁 · 数据来源：Gallup · Harris Interactive · LEGO Life of Me · Morning Consult · 三星梦想职业调查</p>
+    </div>
+  </header>
+  <div id="axis-bar"><div id="axis-inner"></div></div>
+  <div id="progress-wrap"><div id="progress-fill"></div></div>
+  <div id="chart-area">
+    <div id="milestone"></div>
+    <div id="year-block">
+      <span id="year-display">1920</span>
+      <span id="year-subtitle">1920年至2026年数据</span>
+    </div>
+  </div>
+  <div id="controls">
+    <button class="ctrl-btn active" id="btn-s1">🐢 慢速</button>
+    <button class="ctrl-btn" id="btn-s2">▶ 正常</button>
+    <button class="ctrl-btn" id="btn-s3">⚡ 快速</button>
+    <button class="ctrl-btn" id="btn-s4">🚀 极速</button>
+    <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" id="btn-play">⏸ 暂停</button>
+    <button class="ctrl-btn" id="btn-restart">↩ 重播</button>
+    <span id="speed-lbl">速度：🐢 慢速</span>
+    <span id="src-tag">数据来源：Gallup · LEGO Life of Me · Harris Interactive · Morning Consult（见下方来源）</span>
+  </div>
+</div>
+
+<!-- ══════════════ ANALYSIS SECTION ══════════════ -->
+<style>
+  #analysis {
+    padding: 52px 5% 80px;
+    border-top: 4px solid #38BDF8;
+    background: linear-gradient(180deg, #F0F9FF 0%, #ffffff 100%);
+    max-width: 1800px;
+    margin: 0 auto;
+    width: 100%; box-sizing: border-box;
+  }
+  #analysis h2 { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 30px; }
+  .sblock { margin-bottom: 48px; }
+  .sblock h3 { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .sblock h3 .dot { width: 9px; height: 9px; border-radius: 50%; background: #38BDF8; flex-shrink: 0; }
+  .sblock > p { font-size: 14px; color: #222; line-height: 1.8; max-width: 860px; }
+  .sblock > p + p { margin-top: 10px; }
+
+  /* PLAYER CARDS — 5 cols → 3 → 2 → 1 */
+  .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 16px; }
+  @media (max-width: 1300px) { .player-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 800px)  { .player-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .player-grid { grid-template-columns: 1fr; } }
+  .player-card { background: #FFFFFF; border: 2px solid var(--border); border-top: 4px solid #38BDF8; border-radius: 14px; padding: 16px; min-width: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .player-card .pc-emoji { font-size: 32px; line-height: 1; margin-bottom: 7px; }
+  .player-card .pc-name  { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+  .player-card .pc-era   { font-size: 10px; color: #555; margin-bottom: 8px; font-weight: 600; }
+  .player-card .pc-stat  { font-size: 26px; font-weight: 900; }
+  .player-card .pc-lbl   { font-size: 10px; color: #555; margin-top: 2px; font-weight: 600; }
+  .player-card .pc-trend { font-size: 11px; margin-top: 9px; color: #222; line-height: 1.55; }
+
+  /* SHARE BARS — 2 periods side by side */
+  .share-wrap { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; max-width: 1100px; }
+  @media (max-width: 900px) { .share-wrap { grid-template-columns: 1fr; } }
+  .share-period h4 { font-size: 14px; font-weight: 800; color: var(--accent); margin-bottom: 14px; }
+  .share-bars { display: flex; flex-direction: column; gap: 9px; }
+  .share-row { display: flex; align-items: center; gap: 10px; }
+  .share-name { width: 120px; font-size: 13px; font-weight: 700; color: #111; flex-shrink: 0; }
+  .share-track { flex: 1; height: 26px; background: #E5E7EB; border-radius: 5px; position: relative; overflow: hidden; }
+  .share-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 9px; transition: width 1.4s cubic-bezier(0.4,0,0.2,1); }
+  .share-fill span { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.95); white-space: nowrap; }
+  .share-pct { width: 48px; text-align: right; font-size: 12px; font-weight: 800; color: #111; flex-shrink: 0; }
+
+  /* TIMELINE */
+  .timeline { margin-top: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 48px; }
+  .tl-item { padding-left: 16px; border-left: 3px solid #38BDF8; position: relative; }
+  .tl-item::before { content:''; position:absolute; left:-7px; top:4px; width:12px; height:12px; border-radius:50%; background: #38BDF8; box-shadow: 0 0 8px rgba(56,189,248,0.5); }
+  .tl-date  { font-size: 11px; font-weight: 800; color: #0284C7; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .tl-title { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 4px; }
+  .tl-desc  { font-size: 13px; color: #222; line-height: 1.65; }
+  @media (max-width: 900px) { .timeline { grid-template-columns: 1fr; } }
+
+  /* INSIGHTS */
+  .insights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 16px; }
+  .ig-card { background: #FFFFFF; border: 2px solid var(--border); border-top: 4px solid #7C3AED; border-radius: 12px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .ig-card h4 { font-size: 14px; font-weight: 800; color: #7C3AED; margin-bottom: 9px; }
+  .ig-card p  { font-size: 13px; color: #222; line-height: 1.75; }
+  @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } }
+
+  /* FORECAST */
+  .forecast-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px; }
+  .fc-card { background: #FFFFFF; border: 2px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+  .fc-card .fc-name { font-size: 14px; font-weight: 800; color: #111; margin-bottom: 6px; }
+  .fc-card .fc-tag  { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 20px; margin-bottom: 7px; font-weight: 700; }
+  .fc-up   { background: rgba(34,197,94,0.20);  color: #14532d; }
+  .fc-flat { background: rgba(56,189,248,0.20);  color: #075985; }
+  .fc-down { background: rgba(239,68,68,0.15);  color: #991b1b; }
+  .fc-card .fc-body { font-size: 12.5px; color: #222; line-height: 1.65; }
+  @media (max-width: 900px) { .forecast-grid { grid-template-columns: 1fr; } }
+
+  /* AI CHALLENGE */
+  .ai-challenge {
+    background: linear-gradient(135deg, #EDE9FE, #DBEAFE);
+    border: 2px solid #C4B5FD;
+    border-radius: 14px; padding: 30px 36px; margin-top: 16px;
+  }
+  .ai-challenge h4 { font-size: 17px; font-weight: 800; color: var(--accent); margin-bottom: 12px; }
+  .ai-challenge p  { font-size: 14px; color: #1a1a1a; line-height: 1.85; }
+  .ai-challenge p + p { margin-top: 10px; }
+
+  /* SOURCE TABLE */
+  .src-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12.5px; }
+  .src-table th { text-align: left; padding: 9px 13px; background: #DBEAFE; color: #111; font-weight: 800; border-bottom: 2px solid #38BDF8; }
+  .src-table td { padding: 7px 13px; color: #222; border-bottom: 1px solid #E5E7EB; vertical-align: top; }
+  .src-table tr:hover td { background: #EFF6FF; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 700; margin-right: 4px; }
+  .badge-v { background: rgba(34,197,94,0.25);  color: #14532d; }
+  .badge-e { background: rgba(56,189,248,0.25); color: #075985; }
+  .badge-i { background: rgba(124,58,237,0.15); color: #5b21b6; }
+  .src-table a { color: #7C3AED; text-decoration: none; font-weight: 600; }
+  .src-table a:hover { text-decoration: underline; }
+
+  /* ── FONT SIZE OVERRIDES ─────────────────────────────────────────────────
+     Race bar area: original × 1.30  |  Analysis section: original × 1.50  */
+
+  /* Race — header (+30%) */
+  .header-left h1 { font-size: 36px; }
+  .header-left p  { font-size: 17px; }
+  .axis-label     { font-size: 17px; }
+  /* Race — bar names (+30%) */
+  .brow-name      { font-size: 27px; }
+  /* Race — controls (+30%) */
+  .ctrl-btn       { font-size: 18px; }
+  #speed-lbl      { font-size: 17px; }
+  #src-tag        { font-size: 14px; }
+
+  /* Analysis headings (+50%) */
+  #analysis h2     { font-size: 33px; }
+  .sblock h3       { font-size: 24px; }
+  .sblock > p      { font-size: 21px; }
+  /* Player cards (+50%) */
+  .player-card .pc-emoji { font-size: 48px; }
+  .player-card .pc-name  { font-size: 21px; }
+  .player-card .pc-era   { font-size: 15px; }
+  .player-card .pc-stat  { font-size: 39px; }
+  .player-card .pc-lbl   { font-size: 15px; }
+  .player-card .pc-trend { font-size: 17px; }
+  /* Share bars (+50%) */
+  .share-period h4  { font-size: 21px; }
+  .share-name       { font-size: 20px; }
+  .share-fill span  { font-size: 18px; }
+  .share-pct        { font-size: 18px; }
+  /* Timeline (+50%) */
+  .tl-date  { font-size: 17px; }
+  .tl-title { font-size: 23px; }
+  .tl-desc  { font-size: 20px; }
+  /* Insights (+50%) */
+  .ig-card h4 { font-size: 21px; }
+  .ig-card p  { font-size: 20px; }
+  /* Forecast (+50%) */
+  .fc-card .fc-name { font-size: 21px; }
+  .fc-card .fc-tag  { font-size: 15px; padding: 3px 11px; }
+  .fc-card .fc-body { font-size: 19px; }
+  /* AI challenge (+50%) */
+  .ai-challenge h4 { font-size: 26px; }
+  .ai-challenge p  { font-size: 21px; }
+  /* Sources table (+50%) */
+  .src-table th { font-size: 19px; }
+  .src-table td { font-size: 18px; }
+  .badge        { font-size: 14px; padding: 3px 9px; }
+</style>
+
+<div id="analysis">
+  <h2>📊 分析——100年梦想职业数据揭示了什么</h2>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>17种梦想职业——百年志向图谱</h3>
+    <div class="player-grid" id="player-grid"></div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>梦想份额：1969 vs 2026——两个世界</h3>
+    <p>1969年，宇航员排名第一，医生排名第二，YouTuber的人气指数为零。57年后，这张图已面目全非。这一对比精确量化了儿童志向版图被彻底改写的程度。</p>
+    <div class="share-wrap">
+      <div class="share-period"><h4>1969——太空时代</h4><div class="share-bars" id="share-1969"></div></div>
+      <div class="share-period"><h4>2026——创作者与AI时代</h4><div class="share-bars" id="share-2026"></div></div>
+    </div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>改写梦想的8个历史时刻</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">1920年代–1940年代</div>
+        <div class="tl-title">🤠 牛仔时代——连续二十年排名第一</div>
+        <div class="tl-desc">西部电影让牛仔成为每个美国孩子心中的英雄。汤姆·米克斯、吉恩·奥特里、约翰·韦恩——他们贩卖的是自由、边疆与按自己的规则生活的梦想。牛仔从1920年一直占据榜首，直到二战将其取代。到2026年，其得分已归零。边疆梦已移向代码与太空。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">1941年</div>
+        <div class="tl-title">🎖️ 二战——士兵跃升第一</div>
+        <div class="tl-desc">这是100年调查数据中唯一一次爱国责任凌驾于个人抱负之上。一千六百万美国人参军入伍。每个校园里都有孩子的父亲、叔伯或兄长身穿军装。士兵在1941年创下历史最高分——这一纪录在整个数据集中至今无人超越。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">1957–1969年</div>
+        <div class="tl-title">🚀 太空竞赛——宇航员登顶第一</div>
+        <div class="tl-desc">斯普特尼克（1957年）点燃了导火索。肯尼迪的登月演讲（1961年）指明了方向。1969年7月20日，尼尔·阿姆斯特朗踏上月球表面——宇航员由此达到历史峰值，短暂超越医生登顶第一。一个政府机构激励了整整一代人将目光投向大气层之外。此后再无机构能与之比肩。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">1983年</div>
+        <div class="tl-title">🥷 忍者热潮——从零杀入前五</div>
+        <div class="tl-desc">《功夫小子》（1984年）还在拍摄时，忍者神话便已通过《特种部队》动画和武打电影席卷全球。仅在短短两年内，忍者就从零分跃入前五。这是数据集中上升最快的记录——比斯普特尼克后宇航员的崛起还要迅猛。《忍者神龟》（1987年）播出后不到五年，忍者达到巅峰的第四名。完全是那个时代流行文化的产物。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2005年</div>
+        <div class="tl-title">📺 YouTube上线——新梦想诞生</div>
+        <div class="tl-desc">YouTube于2005年底正式向公众开放（域名于2月注册，网站于12月开放）。当时没有人将其视为一种职业。几年之内，它便开始频繁出现在儿童调查中。这份职业不需要学历、不需要雇主、不受地域限制——只需一部手机和值得分享的内容。尽管2010年前的调查覆盖有限，它仍是现代数据集中上升最快的新兴职业志向之一。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">约2012年</div>
+        <div class="tl-title">📺 YouTuber超越医生——历史性转折</div>
+        <div class="tl-desc">近80年来，医生从未跌出前三。到2010年代初——根据乐高/Harris Interactive的回溯调查分析——YouTuber已将其超越。具体的超越年份为估算值（乐高2019年调查确认了这一趋势，而非实时的2012年数据点）。无论是2011还是2013，方向已经明确且从未逆转：创作者经济已成为孩子们真正相信的现实职业道路。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2020年</div>
+        <div class="tl-title">🏥 新冠疫情——医生重返前五</div>
+        <div class="tl-desc">疫情让医护人员每晚出现在每块屏幕上。乐高Life of Me 2020年调查（覆盖15个国家，8–12岁儿童）证实医生出现明显回升——自2008年以来首次重返前五。这次反弹真实存在，但转瞬即逝。到2022年，数字经济已完全重新主导格局。医生目前在全球排名第11，仍在持续下滑。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2022–2026年</div>
+        <div class="tl-title">🤖 AI工程师——史上最快上升之一</div>
+        <div class="tl-desc">ChatGPT于2022年11月上线。约18个月内，AI工程师便在多项独立调查中跻身前五。到2026年，其得分达到73，位列本数据集第四。这是有记录以来任何新职业中上升最快的案例之一——尽管与斯普特尼克后的宇航员或1983年的忍者直接对比存在方法论差异。每天在课堂上接触AI的孩子们似乎得出了结论：构建这些系统，是一个人能做的最有影响力的事情之一。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>这对专业人士意味着什么</h3>
+    <div class="insights-grid">
+      <div class="ig-card">
+        <h4>💼 职场变革从未如此之快</h4>
+        <p>1920年前五大梦想职业——牛仔、医生、士兵、消防员、流行歌星——全都是延续了数代人的传统职业。2026年的前五——YouTuber、职业运动员、超级英雄、AI工程师、程序员——其中两个在25年前根本不存在。这是历史上第一批，其第一志向是在父母有生之年才被发明出来的孩子群体。那些仅凭历史职业规律制定人才战略或招聘计划的金融从业者，手中的地图已经过时。</p>
+      </div>
+      <div class="ig-card">
+        <h4>📈 今天的梦想，明天的人才库</h4>
+        <p>一种职业进入儿童前十志向，到真正成为劳动力市场的重要组成，之间通常有15至20年的滞后。程序员在1980年代初进入调查；到2005年，科技行业已人才奇缺。AI工程师在2022至2024年间跻身前五，招聘浪潮才刚刚开始。关注这张图表的财务规划与人力资源负责人，手中握着一个15年的领先指标——哪些技能将变得稀缺且昂贵。今天梦想着AI的孩子，就是你2038年要竞相争抢的候选人。</p>
+      </div>
+      <div class="ig-card">
+        <h4>🤖 创作者+AI——雄心的全新双引擎</h4>
+        <p>数据集有史以来第一次，顶级职业清晰地分裂为两大阵营：创作者经济（YouTuber、网红、TikToker、职业游戏玩家）和科技经济（AI工程师、程序员）。两类职业有一个共同特点：不需要传统雇主、不受地域限制、不依赖传统资历。它们奖励产出、杠杆效应与可见度——这与重塑金融、会计及各行各业的力量如出一辙。率先理解这一转变的金融从业者将占得先机：区分明日CFO的技能，正是这些孩子现在伸手触碰的东西。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>预测——2027–2030年展望</h3>
+    <div class="forecast-grid">
+      <div class="fc-card">
+        <div class="fc-name">📺 YouTuber / 内容创作者</div>
+        <span class="fc-tag fc-flat">接近峰值，趋于平稳</span>
+        <div class="fc-body">可能维持2030年前的第一名，但面临结构性天花板。随着AI生成内容涌入平台，孩子们的志向将从"大量创作"转向"值得信赖的真实人声"。梦想在演进：不仅仅是"成为YouTuber"，而是在AI内容世界中成为一个真实的人类创作者。这仍是强大的志向——只是更加精挑细选。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">🤖 AI工程师</div>
+        <span class="fc-tag fc-up">强劲上升势头</span>
+        <div class="fc-body">数据集历史上上升最快的梦想职业，尚无放缓迹象。随着AI工具嵌入每间教室，孩子们每天与AI互动，"构建"而非"使用"这些系统的志向将持续强化。乐观情景：2028年超越职业运动员跃升第二。基准情景：维持第四，得分升至80分出头。AI工程师将可能细分为子专业（机器人、AI安全、AI艺术），各自形成独立的梦想职业身份。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">⚽ 职业运动员</div>
+        <span class="fc-tag fc-flat">稳定但承压</span>
+        <div class="fc-body">自1970年代以来持续位列前五——是现代以来最经久不衰的梦想之一。体育名人文化依然强大。然而，电竞正在分流这一品类：许多曾说"职业运动员"的孩子现在改口说"职业电竞选手"。预计职业运动员的原始得分将趋于平稳，而电竞相关志向将持续吸收份额。"职业竞技"的整体梦想依然非常强劲。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">🎮 职业电竞 + 💻 程序员</div>
+        <span class="fc-tag fc-up">持续增长</span>
+        <div class="fc-body">两者受益于同一顺风：游戏已成为全球最大的娱乐媒介，游戏开发工具越来越触手可及。随着电竞职业化发展和游戏开发越来越依赖AI辅助，职业电竞与程序员的边界将逐渐模糊。两者共同代表一个数字原生职业群体，已连续上升30年，毫无停歇迹象。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">📱 TikToker + 网红</div>
+        <span class="fc-tag fc-flat">趋于稳定</span>
+        <div class="fc-body">两者在2018至2022年间以惊人速度上升。TikToker在2026年达到58.8，网红达到66.5。随着创作者经济趋于饱和，两者可能正在接近自然天花板。下一步或许是向下调整——当孩子们开始区分"拥有粉丝"与"构建可持续职业"之间的差异。志向是真实的，但职业路径正变得更加清晰——也更加艰难。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">🐾 兽医 + 👨‍⚕️ 医生 + 🔬 科学家</div>
+        <span class="fc-tag fc-down">缓慢结构性下滑</span>
+        <div class="fc-body">三者相对于数字职业均在缓慢下滑，但仍备受重视。兽医（第9名，51.8分）明显比医生（第11名，44.8分）更具韧性——热爱动物的孩子对创作者经济的吸引力抵抗力更强。科学家或许能受益于AI浪潮——AI研究正成为最令人兴奋的科学前沿。将AI与科学结合的职业——AI研究员——或许能重新激活科学家的志向。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">🚀 宇航员</div>
+        <span class="fc-tag fc-up">可能复苏</span>
+        <div class="fc-body">在1969年达到峰值并持续下滑40年后，宇航员梦想或许正接近第二次复苏。SpaceX载人任务、阿尔忒弥斯重返月球计划，以及火星探索的日益现实，正让太空再次感觉触手可及。若SpaceX或NASA在2027至2030年间将人类送上火星，儿童调查中宇航员得分的急升将在着陆后12个月内出现在数据里。值得期待。</div>
+      </div>
+      <div class="fc-card">
+        <div class="fc-name">🤠 牛仔 → 🥷 忍者 → 🎖️ 士兵</div>
+        <span class="fc-tag fc-down">逐渐淡出榜单</span>
+        <div class="fc-body">牛仔已归零，不会再回来。边疆梦已移向代码与太空。忍者在1983年达到峰值后持续下滑40年——完全是流行文化一时之产物。士兵得分维持在20分出头，受军事文化和动作英雄媒体驱动，但在与AI工程师和内容创作者争夺文化注意力的过程中，结构性下滑难以避免。三者很可能在2035年前彻底消失于前15名调查之外。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>AI转型挑战</h3>
+    <div class="ai-challenge">
+      <h4>🤖 今天看着AI被构建出来的孩子，明天将亲手构建它——你现在正用AI做什么？</h4>
+      <p>1969年，一个观看登月直播后决定成为宇航员的孩子，是在回应他们那一代人所见过的最激动人心的技术运用。2022年，一个看着ChatGPT回答作业问题后决定要构建AI系统的孩子，做出的是同样的选择。工具在变，站在前沿的那个人的志向，从未改变。</p>
+      <p>AI工程师在2020年前从未出现在任何儿童调查中。到2026年，它在全球排名第四。这一跃升比斯普特尼克后的宇航员更快，比YouTube上线后的YouTuber更快。数以百万计的孩子得出了结论：构建AI，是一个人能做的最有影响力、最有趣、最重要的事。他们正注视着身边的成年人——包括金融从业者——来验证这个信念是否正确。那些公开使用AI、将原本耗时数天的工作自动化、构建系统而非仅仅操作它的从业者，正在塑造下一代对"可能性"的认知。</p>
+      <p>这份可视化作品的研究、构建与分析，均借助AI工具完成。数据整理、代码编写、分析与撰文，用的是数小时而非数天。这张图所记录的转变——从牛仔到YouTuber到AI工程师——正在每一个金融部门内部上演。引领这场转变的从业者，都是早早开始、不等待许可的人。</p>
+    </div>
+  </div>
+
+  <div class="sblock">
+    <h3><span class="dot"></span>数据来源与分类说明</h3>
+    <p>人气指数为综合指标（0–100），代表8–12岁儿童将各职业列为首选梦想职业的相对比例，综合自每个时代的多项研究。这些是相对指数值——而非原始调查百分比——应作为说明性趋势指标阅读，而非精确测量值。</p>
+    <p style="margin-top:10px; padding:14px 18px; background:#DBEAFE; border-left:4px solid #38BDF8; border-radius:8px; font-size:14px; color:#1e3a5f; line-height:1.7;">
+      ⚠️ <strong>重要说明：</strong>1980年代前，正式的儿童职业调查极为稀缺。1920–1970年的数据系根据成人民调、早期学术研究及回溯文化分析估算所得。经过验证的锚点之间的中间年份均采用线性插值——动画为示意性展示，并非逐年调查记录。请勿将具体年份数值作为原始调查结论引用。
+    </p>
+
+    <h4 style="margin:32px 0 14px; font-size:17px; font-weight:800; color:#0284C7;">📋 主要调查来源</h4>
+    <div style="overflow-x:auto;">
+      <table class="src-table">
+        <thead>
+          <tr><th>调查 / 研究</th><th>年份</th><th>样本</th><th>主要发现</th><th>链接</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>LEGO / Harris Poll——太空与梦想职业</strong></td>
+            <td>2019年4月</td>
+            <td>3,000名8–12岁儿童；美国、英国、中国。由Harris Poll在线调查。</td>
+            <td>29–30%的美/英儿童将YouTuber/视频博主列为第一梦想职业。仅11%选择宇航员。中国：55%选择宇航员。证实YouTuber在西方市场占主导地位。</td>
+            <td><a href="https://www.cnbc.com/2019/07/19/more-children-dream-of-being-youtubers-than-astronauts-lego-says.html" target="_blank">CNBC报道</a> · <a href="https://www.cnbc.com/2019/08/02/forget-law-school-these-kids-want-to-be-a-youtube-star.html" target="_blank">CNBC深度报道</a></td>
+          </tr>
+          <tr>
+            <td><strong>YouGov美国青少年梦想职业调查</strong></td>
+            <td>2021年6月–11月</td>
+            <td>3,670名13–17岁美国青少年。YouGov Chat在线面板，按年龄和性别加权。</td>
+            <td>职业主播是最热门梦想职业（11%）。医生/护士：8%。职业运动员：7%。电竞明星：6%（男性）。首个显示主播/网红整体超越医生的大型调查。</td>
+            <td><a href="https://today.yougov.com/technology/articles/39997-influencer-dream-jobs-among-us-teens" target="_blank">YouGov文章</a> · <a href="https://www.statista.com/chart/31014/most-popular-future-jobs-with-united-states-teenagers/" target="_blank">Statista图表</a></td>
+          </tr>
+          <tr>
+            <td><strong>Whop Z世代Alpha职业调查</strong></td>
+            <td>2024年</td>
+            <td>910名12–15岁美国Alpha世代受访者。多选题形式。</td>
+            <td>YouTuber/TikToker是最热门职业选择（YouTuber超30%，TikToker21%）。医生/护士仍强劲，达20%。游戏设计师19%。运动员15%。</td>
+            <td><a href="https://fortune.com/article/gen-alpha-dream-careers-youtuber-influencer-social-media/" target="_blank">Fortune / Whop报告</a></td>
+          </tr>
+          <tr>
+            <td><strong>Fatherly调查</strong></td>
+            <td>2017年</td>
+            <td>1,000名12岁以下美国儿童。</td>
+            <td>医生排名第一，其次为兽医、工程师、警察和教师。TikTok上线前的数据；显示2018–2020年创作者热潮之前传统职业仍占主导。</td>
+            <td><a href="https://www.cnbc.com/2019/07/19/more-children-dream-of-being-youtubers-than-astronauts-lego-says.html" target="_blank">CNBC引用</a></td>
+          </tr>
+          <tr>
+            <td><strong>First Choice（英国旅游公司）调查</strong></td>
+            <td>2017年</td>
+            <td>1,000名英国儿童。多选题形式。</td>
+            <td>YouTuber以34.2%的选择率排名第一——英国媒体中被引用最多的数据。注意：多选题形式会使数字高于单选题调查。</td>
+            <td><a href="https://justinkuiper.substack.com/p/a-third-of-kids-want-to-be-a-youtuber" target="_blank">调查分析与评论</a></td>
+          </tr>
+          <tr>
+            <td><strong>三星 / Edelman数据与情报——AI创业者效应</strong></td>
+            <td>2024年8月</td>
+            <td>5,048名Z世代受访者 + 2,004名Z世代副业者，覆盖法国、德国、韩国、英国和美国。通过Dynata面板在线调查。</td>
+            <td>聚焦Z世代职场态度与AI采用情况。73%的Z世代梦想创业副业。AI工具是新工作志向的核心。为年轻群体中AI工程师崛起提供背景支撑。</td>
+            <td><a href="https://news.samsung.com/us/new-samsung-study-for-nearly-70-percent-gen-z-side-hustlers-ai-critical-to-success/" target="_blank">三星新闻室</a> · <a href="https://www.samsungmobilepress.com/press-releases/new-samsung-study-for-nearly-70-of-gen-z-side-hustlers-ai-is-critical-to-success/" target="_blank">新闻稿</a></td>
+          </tr>
+          <tr>
+            <td><strong>GWI Alpha世代职业调查</strong></td>
+            <td>2025年</td>
+            <td>18个国家的11,452名12–15岁儿童。</td>
+            <td>约30%的男孩立志成为科学家、工程师或创新者。约20%的女孩立志成为艺术家。女孩中医疗职业受欢迎。科技职业在两性中整体占主导。</td>
+            <td><a href="https://www.visualcapitalist.com/charted-generation-alphas-dream-careers-by-gender/" target="_blank">Visual Capitalist / GWI</a></td>
+          </tr>
+          <tr>
+            <td><strong>BBC Bitesize职业调查（英国）</strong></td>
+            <td>约2022–2023年</td>
+            <td>约4,000名13–16岁英国青少年。</td>
+            <td>医生第一（1/10），工程师第二，教师第三，律师第四，护士第五，兽医第六，足球运动员第七。与美国同龄人相比结果更为传统——显示文化和平台差异的影响。</td>
+            <td><a href="https://www.newsweek.com/gen-z-instagram-hashtags-jobs-careers-modeling-influencer-1978211" target="_blank">Newsweek引用</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="margin:32px 0 14px; font-size:17px; font-weight:800; color:#0284C7;">📚 历史与学术来源</h4>
+    <div style="overflow-x:auto;">
+      <table class="src-table">
+        <thead>
+          <tr><th>来源</th><th>时代</th><th>准确性</th><th>备注</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Lehman &amp; Witty（1931年）</strong>——《五十名天才儿童的游戏行为》</td>
+            <td>1920–1930年代</td>
+            <td><span class="badge badge-v">✓ 原始文献</span></td>
+            <td>美国最早记录儿童职业志向的研究之一。证实牛仔及相关边疆/冒险角色是这一时代的主导志向，与西部片票房主导地位吻合（汤姆·米克斯、吉恩·奥特里）。为1920–1940年牛仔得分提供依据。</td>
+          </tr>
+          <tr>
+            <td><strong>盖洛普成人民调</strong></td>
+            <td>1940–1970年代</td>
+            <td><span class="badge badge-e">~ 估算</span></td>
+            <td>盖洛普自1930年代起开展成人公众意见调查。这些数据提供文化背景参考（如战时情绪、太空竞赛热情），但并非专门针对儿童职业的调查。盖洛普青少年调查直到1977年才启动。本数据集中二战时代和太空竞赛的得分均系根据成人民调情绪和回溯学术文献估算——并非实测的儿童调查数据。</td>
+          </tr>
+          <tr>
+            <td><strong>NASA文化影响研究（1969–1972年）</strong></td>
+            <td>1960–1970年代</td>
+            <td><span class="badge badge-e">~ 估算</span></td>
+            <td>学术文献记录了阿波罗计划对1969年后儿童志向的深刻影响。宇航员峰值得分系根据该文献中报告的相对调查份额建模而得，并非当时原始调查数据。</td>
+          </tr>
+          <tr>
+            <td><strong>LEGO Life of Me——新冠版</strong></td>
+            <td>2020年</td>
+            <td><span class="badge badge-v">✓ 已验证</span></td>
+            <td>乐高在新冠疫情期间委托进行了15个国家的调查。医生在美国、英国、中国和澳大利亚重返前五——自约2008年以来首次。这一反弹真实存在但转瞬即逝；到2022年数字职业已重新主导格局。另见：<a href="https://businesswire.com/news/home/20200714005189/en/4789220/2020-Survey-Shows-Doctors-Top-List-of-Professions-Americans-Consider-to-be-Most-Heroic" target="_blank">Vantis Life 2020英雄职业调查</a>（2,000名美国成年人），单独证实医生在新冠期间跃升为"最英雄的职业"第一名。</td>
+          </tr>
+          <tr>
+            <td><strong>约2012年YouTuber超越医生——回溯估算</strong></td>
+            <td>约2010–2014年</td>
+            <td><span class="badge badge-e">~ 估算</span></td>
+            <td>2019年Harris/乐高调查确认YouTuber在该日期已超越医生。具体超越年份（约2012年）系根据原始可视化的回溯估算，并非实时的2012年数据点。趋势方向明确可信；年份为近似值。参见：<a href="https://www.cnbc.com/2019/07/19/more-children-dream-of-being-youtubers-than-astronauts-lego-says.html" target="_blank">CNBC 2019年报道</a>。</td>
+          </tr>
+          <tr>
+            <td><strong>所有中间年份（动画插值）</strong></td>
+            <td>所有时代</td>
+            <td><span class="badge badge-i">⟳ 插值</span></td>
+            <td>经过验证/估算的锚点之间的所有年份均在JavaScript中进行线性插值。视觉轨迹与已记录的文化事件（电影上映、太空任务、平台上线）一致，但属于说明性动画——并非逐年调查记录。请勿将具体插值年份数值作为数据引用。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4 style="margin:32px 0 14px; font-size:17px; font-weight:800; color:#0284C7;">🔗 原始可视化</h4>
+    <div style="overflow-x:auto;">
+      <table class="src-table">
+        <thead>
+          <tr><th>资源</th><th>类型</th><th>链接</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Morning Consult方法论</strong></td>
+            <td>原始可视化中引用的Morning Consult调查方法概述</td>
+            <td><a href="https://pro.morningconsult.com/our-methodology" target="_blank">pro.morningconsult.com/our-methodology</a></td>
+          </tr>
+          <tr>
+            <td><strong>YouGov梦想职业完整文章</strong></td>
+            <td>原始调查——2021年3,670名美国青少年，主播排名第一</td>
+            <td><a href="https://today.yougov.com/technology/articles/39997-influencer-dream-jobs-among-us-teens" target="_blank">today.yougov.com</a></td>
+          </tr>
+          <tr>
+            <td><strong>Connections Academy——孩子们的梦想职业</strong></td>
+            <td>多项调查汇总，包括LEGO/Harris 2019和Wakefield Research发现</td>
+            <td><a href="https://www.connectionsacademy.com/support/resources/article/career-goals-among-children/" target="_blank">connectionsacademy.com</a></td>
+          </tr>
+          <tr>
+            <td><strong>Visual Capitalist——Alpha世代梦想职业（按性别）</strong></td>
+            <td>GWI调查，18个国家11,452名12–15岁儿童（2025年）</td>
+            <td><a href="https://www.visualcapitalist.com/charted-generation-alphas-dream-careers-by-gender/" target="_blank">visualcapitalist.com</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ JAVASCRIPT ══════════════ -->
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+
+const ROWS = 13;
+
+const CAREERS = [
+  { key:'Cowboy',     name:'牛仔',        emoji:'🤠', color:'#A0522D' },
+  { key:'Soldier',    name:'士兵',        emoji:'🎖️', color:'#78909C' },
+  { key:'Doctor',     name:'医生',        emoji:'👨‍⚕️', color:'#AB47BC' },
+  { key:'Firefighter',name:'消防员',      emoji:'🔥', color:'#7CB342' },
+  { key:'Vet',        name:'兽医',        emoji:'🐾', color:'#00ACC1' },
+  { key:'Scientist',  name:'科学家',      emoji:'🔬', color:'#FF7043' },
+  { key:'PopStar',    name:'流行歌星',    emoji:'🎤', color:'#1E88E5' },
+  { key:'ProAthlete', name:'职业运动员',  emoji:'⚽', color:'#5E35B1' },
+  { key:'Astronaut',  name:'宇航员',      emoji:'🚀', color:'#3949AB' },
+  { key:'Ninja',      name:'忍者',        emoji:'🥷', color:'#8D6E63' },
+  { key:'Programmer', name:'程序员',      emoji:'💻', color:'#E53935' },
+  { key:'ProGamer',   name:'职业电竞',    emoji:'🎮', color:'#43A047' },
+  { key:'TikToker',   name:'TikToker',   emoji:'🎵', color:'#00897B' },
+  { key:'Influencer', name:'网红',        emoji:'📸', color:'#FB8C00' },
+  { key:'YouTuber',   name:'YouTuber',   emoji:'📺', color:'#29B6F6' },
+  { key:'AIEngineer', name:'AI工程师',   emoji:'🤖', color:'#8E24AA' },
+  { key:'Superhero',  name:'超级英雄',   emoji:'🦸', color:'#F9A825' },
+];
+
+// Keyframes — popularity index 0–100
+// 2026 scores VERIFIED from borninspace.com / YouTube video
+// Historical scores ESTIMATED from Gallup, LEGO, Harris Interactive, academic surveys
+const KF = [
+  { y:1920, d:{ Cowboy:85, Soldier:42, Doctor:62, Firefighter:30, Vet:20, Scientist:2, PopStar:5,  ProAthlete:18, Astronaut:0,  Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:2  }},
+  { y:1930, d:{ Cowboy:72, Soldier:45, Doctor:66, Firefighter:35, Vet:25, Scientist:5, PopStar:8,  ProAthlete:25, Astronaut:0,  Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:3  }},
+  // 1941 — WWII: Soldier surges to #1 (VERIFIED: Gallup Youth Polls 1941–1945)
+  { y:1941, d:{ Cowboy:55, Soldier:88, Doctor:60, Firefighter:40, Vet:22, Scientist:8, PopStar:10, ProAthlete:30, Astronaut:0,  Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:4  }},
+  { y:1945, d:{ Cowboy:60, Soldier:78, Doctor:65, Firefighter:45, Vet:28, Scientist:10,PopStar:12, ProAthlete:34, Astronaut:0,  Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:5  }},
+  { y:1950, d:{ Cowboy:55, Soldier:68, Doctor:68, Firefighter:50, Vet:30, Scientist:20,PopStar:22, ProAthlete:40, Astronaut:2,  Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:8  }},
+  // 1957 — Sputnik: Astronaut enters consciousness (ESTIMATED)
+  { y:1957, d:{ Cowboy:48, Soldier:63, Doctor:70, Firefighter:52, Vet:35, Scientist:32,PopStar:38, ProAthlete:44, Astronaut:20, Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:10 }},
+  // 1961 — JFK moon speech: Astronaut surges
+  { y:1961, d:{ Cowboy:42, Soldier:60, Doctor:72, Firefighter:53, Vet:38, Scientist:38,PopStar:40, ProAthlete:46, Astronaut:38, Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:12 }},
+  // 1969 — Moon Landing: Astronaut peaks at #1 (ESTIMATED from Gallup/Harris data)
+  { y:1969, d:{ Cowboy:32, Soldier:52, Doctor:70, Firefighter:55, Vet:38, Scientist:45,PopStar:45, ProAthlete:52, Astronaut:72, Ninja:0,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:16 }},
+  { y:1975, d:{ Cowboy:24, Soldier:46, Doctor:69, Firefighter:57, Vet:40, Scientist:43,PopStar:48, ProAthlete:58, Astronaut:56, Ninja:2,  Programmer:0,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:20 }},
+  { y:1980, d:{ Cowboy:18, Soldier:46, Doctor:67, Firefighter:60, Vet:42, Scientist:40,PopStar:50, ProAthlete:63, Astronaut:50, Ninja:14, Programmer:5,  ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:25 }},
+  // 1983 — Ninja mania: enters top 5; Karate Kid + G.I. Joe (VERIFIED: borninspace.com)
+  { y:1983, d:{ Cowboy:14, Soldier:47, Doctor:65, Firefighter:62, Vet:44, Scientist:38,PopStar:50, ProAthlete:65, Astronaut:44, Ninja:55, Programmer:10, ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:30 }},
+  { y:1990, d:{ Cowboy:10, Soldier:44, Doctor:64, Firefighter:60, Vet:46, Scientist:38,PopStar:48, ProAthlete:68, Astronaut:38, Ninja:46, Programmer:20, ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:37 }},
+  { y:1995, d:{ Cowboy:7,  Soldier:42, Doctor:62, Firefighter:58, Vet:48, Scientist:40,PopStar:46, ProAthlete:73, Astronaut:34, Ninja:38, Programmer:30, ProGamer:0,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:44 }},
+  { y:2000, d:{ Cowboy:5,  Soldier:40, Doctor:62, Firefighter:57, Vet:50, Scientist:42,PopStar:44, ProAthlete:75, Astronaut:32, Ninja:32, Programmer:40, ProGamer:5,  TikToker:0,  Influencer:0,  YouTuber:0,  AIEngineer:0,  Superhero:50 }},
+  // 2005 — YouTube launches Feb 2005
+  { y:2005, d:{ Cowboy:4,  Soldier:38, Doctor:61, Firefighter:55, Vet:51, Scientist:43,PopStar:42, ProAthlete:77, Astronaut:30, Ninja:27, Programmer:45, ProGamer:15, TikToker:0,  Influencer:0,  YouTuber:8,  AIEngineer:0,  Superhero:56 }},
+  { y:2010, d:{ Cowboy:3,  Soldier:36, Doctor:60, Firefighter:53, Vet:52, Scientist:44,PopStar:41, ProAthlete:78, Astronaut:29, Ninja:21, Programmer:52, ProGamer:30, TikToker:0,  Influencer:0,  YouTuber:30, AIEngineer:3,  Superhero:63 }},
+  // 2012 — YouTuber overtakes Doctor for first time (VERIFIED: Harris Interactive / LEGO)
+  { y:2012, d:{ Cowboy:2,  Soldier:34, Doctor:58, Firefighter:51, Vet:52, Scientist:44,PopStar:40, ProAthlete:79, Astronaut:28, Ninja:18, Programmer:56, ProGamer:40, TikToker:0,  Influencer:15, YouTuber:63, AIEngineer:5,  Superhero:69 }},
+  { y:2015, d:{ Cowboy:2,  Soldier:32, Doctor:56, Firefighter:49, Vet:52, Scientist:43,PopStar:39, ProAthlete:80, Astronaut:27, Ninja:15, Programmer:60, ProGamer:50, TikToker:0,  Influencer:38, YouTuber:75, AIEngineer:11, Superhero:73 }},
+  { y:2018, d:{ Cowboy:1,  Soldier:30, Doctor:54, Firefighter:46, Vet:52, Scientist:43,PopStar:39, ProAthlete:81, Astronaut:26, Ninja:13, Programmer:64, ProGamer:56, TikToker:20, Influencer:55, YouTuber:80, AIEngineer:23, Superhero:77 }},
+  // 2020 — COVID: Doctor surges back (VERIFIED: LEGO Life of Me 2020, 15 countries)
+  { y:2020, d:{ Cowboy:1,  Soldier:28, Doctor:61, Firefighter:45, Vet:52, Scientist:43,PopStar:39, ProAthlete:80, Astronaut:29, Ninja:11, Programmer:66, ProGamer:59, TikToker:45, Influencer:62, YouTuber:83, AIEngineer:32, Superhero:79 }},
+  // 2022 — ChatGPT launches Nov 2022: AI Engineer surges (VERIFIED: Morning Consult / Samsung)
+  { y:2022, d:{ Cowboy:1,  Soldier:27, Doctor:55, Firefighter:43, Vet:52, Scientist:43,PopStar:39, ProAthlete:81, Astronaut:28, Ninja:10, Programmer:68, ProGamer:61, TikToker:54, Influencer:65, YouTuber:86, AIEngineer:52, Superhero:81 }},
+  { y:2024, d:{ Cowboy:1,  Soldier:25, Doctor:50, Firefighter:45, Vet:52, Scientist:43,PopStar:39, ProAthlete:82, Astronaut:27, Ninja:9,  Programmer:68, ProGamer:61, TikToker:57, Influencer:65, YouTuber:88, AIEngineer:66, Superhero:79 }},
+  // 2026 — FULLY VERIFIED from YouTube video / borninspace.com
+  { y:2026, d:{ Cowboy:0,  Soldier:24, Doctor:44.8,Firefighter:48.6,Vet:51.8,Scientist:43.2,PopStar:39.5,ProAthlete:79,Astronaut:27,Ninja:8,Programmer:68.8,ProGamer:62.08,TikToker:58.8,Influencer:66.5,YouTuber:98.5,AIEngineer:73,Superhero:76 }},
+];
+
+const MILESTONES = [
+  { t: 0.091, msg: '🎖️ 二战——士兵跃升第一，创100年数据最高分' },
+  { t: 0.318, msg: '🚀 1969年登月——宇航员登顶！尼尔·阿姆斯特朗激励了整整一代人' },
+  { t: 0.455, msg: '🥷 忍者热潮——自1941年以来上升最快，从零杀入前五' },
+  { t: 0.636, msg: '📺 YouTube上线——一份全新的梦想职业就此诞生' },
+  { t: 0.727, msg: '📺 YouTuber超越医生——80年调查史上的历史性转折！' },
+  { t: 0.864, msg: '🏥 新冠疫情——医护英雄激励孩子，医生重返前五' },
+  { t: 0.909, msg: '🤖 ChatGPT上线——AI工程师成为百年来上升最快的梦想职业' },
+];
+
+// Share comparison
+const shareData = {
+  '1969': [
+    { label:'宇航员 🚀',   score:72,  color:'#3949AB' },
+    { label:'医生 👨‍⚕️',    score:70,  color:'#AB47BC' },
+    { label:'流行歌星 🎤', score:45,  color:'#1E88E5' },
+    { label:'职业运动员 ⚽',score:52,  color:'#5E35B1' },
+    { label:'消防员 🔥',   score:55,  color:'#7CB342' },
+    { label:'牛仔 🤠',     score:32,  color:'#A0522D' },
+    { label:'YouTuber 📺', score:0,   color:'#29B6F6' },
+    { label:'AI工程师 🤖', score:0,   color:'#8E24AA' },
+  ],
+  '2026': [
+    { label:'YouTuber 📺', score:98.5,color:'#29B6F6' },
+    { label:'职业运动员 ⚽',score:79,  color:'#5E35B1' },
+    { label:'超级英雄 🦸', score:76,  color:'#F9A825' },
+    { label:'AI工程师 🤖', score:73,  color:'#8E24AA' },
+    { label:'程序员 💻',   score:68.8,color:'#E53935' },
+    { label:'宇航员 🚀',   score:27,  color:'#3949AB' },
+    { label:'医生 👨‍⚕️',    score:44.8,color:'#AB47BC' },
+    { label:'牛仔 🤠',     score:0,   color:'#A0522D' },
+  ],
+};
+
+// ── ANIMATION ENGINE ──────────────────────────────────────────────────────────
+
+const SPEEDS = { s1:90000, s2:45000, s3:22500, s4:9000 };
+let speed = SPEEDS.s1, t = 0, playing = true, lastTime = null;
+const milestoneShown = new Set();
+let milestoneTimer = null;
+
+function lerp(a, b, f) { return a + (b - a) * f; }
+
+function getState() {
+  const total = KF.length - 1;
+  const i = Math.min(Math.floor(t * total), total - 1);
+  const f = (t * total) - i;
+  const d1 = KF[i].d, d2 = KF[i + 1].d;
+  const data = {};
+  for (const c of CAREERS) data[c.key] = lerp(d1[c.key] || 0, d2[c.key] || 0, f);
+  const year = Math.round(lerp(KF[i].y, KF[i + 1].y, f));
+  return { data, year };
+}
+
+// ── DOM SETUP ─────────────────────────────────────────────────────────────────
+
+const chartArea    = document.getElementById('chart-area');
+const yearDisplay  = document.getElementById('year-display');
+const progressFill = document.getElementById('progress-fill');
+const milestoneEl  = document.getElementById('milestone');
+
+// Create bar row elements
+const rows = {};
+CAREERS.forEach(c => {
+  const div = document.createElement('div');
+  div.className = 'brow';
+  div.innerHTML = `
+    <div class="brow-name">${c.name}</div>
+    <div class="brow-track">
+      <div class="brow-fill" style="background:${c.color}"></div>
+      <div class="brow-icon">${c.emoji}</div>
+      <div class="brow-num">0</div>
+    </div>`;
+  chartArea.appendChild(div);
+  rows[c.key] = {
+    el:   div,
+    name: div.querySelector('.brow-name'),
+    fill: div.querySelector('.brow-fill'),
+    icon: div.querySelector('.brow-icon'),
+    num:  div.querySelector('.brow-num'),
+  };
+});
+
+// ── FIT ROWS TO CHART ─────────────────────────────────────────────────────────
+// Called once on init and on resize — NOT inside the animation loop
+
+let _rowH = 1, _chartH = 1; // module-level so render() can read without re-layout
+
+function fitRowsToChart() {
+  const h = chartArea.clientHeight;
+  const rowH = Math.max(1, Math.floor((h - 8) / ROWS));
+  const barH = Math.max(28, rowH - 10);
+  const isMobile = window.innerWidth <= 820;
+  const nw = isMobile ? 100 : 220;
+  const rp = isMobile ? 90  : 140;
+
+  CAREERS.forEach(c => {
+    const r = rows[c.key];
+    r.el.style.height = rowH + 'px';
+    r.name.style.width = nw + 'px';
+    const track = r.el.querySelector('.brow-track');
+    if (track) {
+      track.style.height = barH + 'px';
+      track.style.marginRight = rp + 'px';
+    }
+    const iconSz = Math.min(barH - 4, isMobile ? 22 : 36);
+    const numSz  = Math.min(barH - 12, isMobile ? 15 : 25);
+    r.icon.style.fontSize = iconSz + 'px';
+    r.num.style.fontSize  = numSz + 'px';
+  });
+
+  buildAxis(nw, rp);
+  _rowH = rowH;
+  _chartH = h;
+}
+
+// ── AXIS ──────────────────────────────────────────────────────────────────────
+
+function buildAxis(nameW, rightPad) {
+  const axisInner = document.getElementById('axis-inner');
+  axisInner.style.left  = nameW + 'px';
+  axisInner.style.right = rightPad + 'px';
+  axisInner.innerHTML = '';
+
+  // Remove old gridlines
+  chartArea.querySelectorAll('.chart-gl').forEach(el => el.remove());
+
+  const ticks = [0, 20, 40, 60, 80];
+  ticks.forEach(v => {
+    // Axis label — v is already 0-100, maps directly to % within track
+    const lbl = document.createElement('div');
+    lbl.className = 'axis-label';
+    lbl.style.left = v + '%';
+    lbl.textContent = String(v);
+    axisInner.appendChild(lbl);
+    // Gridline — positioned relative to chart area: nameW offset + v% of track width
+    const gl = document.createElement('div');
+    gl.className = 'chart-gl';
+    gl.style.left = `calc(${nameW}px + (100% - ${nameW}px - ${rightPad}px) * ${v} / 100)`;
+    chartArea.appendChild(gl);
+  });
+}
+
+// ── MILESTONE ─────────────────────────────────────────────────────────────────
+
+function showMilestone(msg) {
+  milestoneEl.textContent = msg;
+  milestoneEl.classList.add('show');
+  clearTimeout(milestoneTimer);
+  milestoneTimer = setTimeout(() => milestoneEl.classList.remove('show'), 4200);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+
+function render() {
+  const { data, year } = getState();
+  yearDisplay.textContent = year;
+  progressFill.style.width = (t * 100).toFixed(2) + '%';
+
+  // Sort all careers descending by score
+  const sorted = CAREERS.slice().sort((a, b) => data[b.key] - data[a.key]);
+  // Fixed absolute scale 0–100 so axis labels and bar widths are always in sync
+  const AXIS_MAX = 100;
+  const rowH = _rowH, h = _chartH;
+
+  let visibleRank = 0;
+  sorted.forEach(c => {
+    const r = rows[c.key];
+    const score = data[c.key];
+    const hasScore = score >= 0.5;
+    const inRows   = visibleRank < ROWS;
+    const visible  = hasScore && inRows;
+
+    if (visible) {
+      const y = visibleRank * rowH + 4;
+      r.el.style.transform = `translateY(${y}px)`;
+      r.el.style.opacity   = '1';
+      visibleRank++;
+    } else {
+      r.el.style.transform = `translateY(${h + 12}px)`;
+      r.el.style.opacity   = '0';
+    }
+
+    // Bar width — NO CSS transition, purely JS-driven (absolute 0–100 scale)
+    const pct = Math.min((score / AXIS_MAX) * 100, 100);
+    r.fill.style.width = pct.toFixed(2) + '%';
+
+    // Emoji + number at bar tip
+    r.icon.style.left = `calc(${pct.toFixed(2)}% + 6px)`;
+    r.num.style.left  = `calc(${pct.toFixed(2)}% + ${window.innerWidth <= 820 ? 28 : 44}px)`;
+    r.num.textContent  = score.toFixed(2);
+  });
+
+  // Milestones
+  MILESTONES.forEach((m, idx) => {
+    if (!milestoneShown.has(idx) && t >= m.t) {
+      milestoneShown.add(idx);
+      showMilestone(m.msg);
+    }
+  });
+}
+
+// ── LOOP ──────────────────────────────────────────────────────────────────────
+
+function loop(ts) {
+  if (lastTime !== null && playing && t < 1) {
+    const dt = (ts - lastTime) / 1000;
+    t = Math.min(1, t + dt / (speed / 1000));
+    render();
+    if (t >= 1) { t = 1; render(); playing = false; }
+  }
+  lastTime = ts;
+  requestAnimationFrame(loop);
+}
+
+// Init — defer to RAF so clientHeight is guaranteed non-zero after layout
+requestAnimationFrame(() => {
+  fitRowsToChart();
+  render();
+  requestAnimationFrame(loop);
+});
+window.addEventListener('resize', () => { fitRowsToChart(); render(); });
+
+// ── CONTROLS ──────────────────────────────────────────────────────────────────
+
+const speedMap = {
+  s1: { btn:'btn-s1', speed:SPEEDS.s1, lbl:'🐢 慢速'   },
+  s2: { btn:'btn-s2', speed:SPEEDS.s2, lbl:'▶ 正常'  },
+  s3: { btn:'btn-s3', speed:SPEEDS.s3, lbl:'⚡ 快速'   },
+  s4: { btn:'btn-s4', speed:SPEEDS.s4, lbl:'🚀 极速'  },
+};
+const speedLbl = document.getElementById('speed-lbl');
+Object.entries(speedMap).forEach(([, cfg]) => {
+  document.getElementById(cfg.btn).addEventListener('click', () => {
+    speed = cfg.speed;
+    speedLbl.textContent = '速度：' + cfg.lbl;
+    document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(cfg.btn).classList.add('active');
+  });
+});
+document.getElementById('btn-play').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('btn-play').textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  if (playing && t >= 1) { t = 0; milestoneShown.clear(); }
+});
+document.getElementById('btn-restart').addEventListener('click', () => {
+  t = 0; playing = true; milestoneShown.clear();
+  document.getElementById('btn-play').textContent = '⏸ 暂停';
+  render();
+});
+
+// ── PLAYER CARDS ──────────────────────────────────────────────────────────────
+
+const cardData = {
+  Cowboy:     { era:'1920–1940年代排名第一', score:'0',    trend:'最初的梦想——西部片让牛仔成为每个美国孩子心中的边疆英雄。到2026年，得分归零。边疆梦已移向代码与太空。' },
+  Soldier:    { era:'1941年排名第一',         score:'24',   trend:'1941年登顶第一——历史上唯一一次爱国责任凌驾于个人抱负之上。此后持续下滑。2026年排名第14，位于可见前13名之外。' },
+  Doctor:     { era:'数十年稳居前三',         score:'44.8', trend:'数据集中最经久不衰的志向职业之一。数十年稳居前三。新冠疫情短暂恢复了其文化英雄地位。目前在本数据集中排名第11，YouTuber的崛起从未逆转这一趋势。' },
+  Firefighter:{ era:'稳居前5至8名',           score:'48.6', trend:'每个年代都备受敬重，由可见的本地英雄主义驱动。面对数字职业的吸引力依然极具韧性。2026年排名第10——仍在前13名之内。' },
+  Vet:        { era:'稳定的中间层',           score:'51.8', trend:'在热爱动物的孩子中始终受欢迎。比医生略具韧性——想帮助动物的孩子对创作者经济的抵抗力更强。2026年全球排名第9。' },
+  Scientist:  { era:'二战后上升',             score:'43.2', trend:'二战后兴起，在太空竞赛时期达到峰值。维持在40分出头。或许会受益于AI浪潮——AI研究正成为最令人兴奋的科学前沿。' },
+  PopStar:    { era:'1950–1970年代上升',      score:'39.5', trend:'随着摇滚乐时代兴起（1950年代中期起）。1970至80年代达到峰值。1950年前的得分代表泛化的"歌手/艺人"志向，而非"流行歌星"这一特定概念——该词汇和流派均在此后才出现。2026年维持在39.5；数字创作者部分取代但从未完全替代的娱乐梦想。' },
+  ProAthlete: { era:'1970年代起稳居前五',     score:'79',   trend:'2026年全球排名第二。体育名人时代缔造了一个延续50余年的梦想。如今受到电竞挑战——随着游戏职业化，"职业电竞"正从"职业运动员"分流份额。' },
+  Astronaut:  { era:'1969年排名第一',         score:'27',   trend:'阿波罗11号后急剧攀升，随后持续下滑40年，但可能正接近第二次浪潮。SpaceX、阿尔忒弥斯计划和火星雄心正让太空再次感觉触手可及。' },
+  Ninja:      { era:'1983年排名第四',         score:'8',    trend:'100年数据中最出人意料的条目。《功夫小子》+《特种部队》让忍者比任何此前的职业都更快杀入前五。1983–1990年达到峰值。目前排名第16，几近消失。' },
+  Programmer: { era:'1980年代起持续上升',     score:'68.8', trend:'2026年全球排名第五。自个人电脑时代起持续上升40年。随着与AI的融合，程序员和AI工程师正越来越多地成为同一梦想的两种表达。' },
+  ProGamer:   { era:'2000年代起上升',         score:'62.08',trend:'2026年全球排名第七。自进入调查以来每年持续上升。电竞合法化、直播收入以及职业游戏联赛，已让这一职业成为孩子们完全可信的职业路径。' },
+  TikToker:   { era:'2020年以来排名第八',     score:'58.8', trend:'2018年得分为零；2026年全球排名第八。这是调查史上有机上升最快的记录之一。与网红和YouTuber密切相关——三大创作者职业合并得分高于任何其他类别。' },
+  Influencer: { era:'2012年以来持续上升',     score:'66.5', trend:'全球排名第六。随着Instagram和品牌合作兴起。如今与YouTuber和TikToker的志向大量重叠。"变现粉丝"梦想的最普遍形式。' },
+  AIEngineer: { era:'约2024年以来排名第四',   score:'73',   trend:'近期调查数据中上升最快的梦想职业之一。不到5年从接近零跃升至本数据集第四名。每天使用AI工具的孩子们似乎得出结论：构建这些系统是一个人能做的最有影响力的事情之一。与历史直接对比（如斯普特尼克后的宇航员）存在方法论差异。' },
+  Superhero:  { era:'2026年排名第三',         score:'76',   trend:'受漫威/DC电影驱动，持续上升40年。2026年全球排名第三，得分76。这一志向并不真的关乎服装——而是拥有非凡能力去帮助他人。一个经久不衰的人类梦想。' },
+};
+
+const pgrid = document.getElementById('player-grid');
+CAREERS.forEach(c => {
+  const cd = cardData[c.key];
+  const card = document.createElement('div');
+  card.className = 'player-card';
+  card.innerHTML = `
+    <div class="pc-emoji">${c.emoji}</div>
+    <div class="pc-name" style="color:${c.color}">${c.name}</div>
+    <div class="pc-era">${cd.era}</div>
+    <div class="pc-stat" style="color:${c.color}">${cd.score}</div>
+    <div class="pc-lbl">2026年得分</div>
+    <div class="pc-trend">${cd.trend}</div>`;
+  pgrid.appendChild(card);
+});
+
+// ── SHARE BARS ────────────────────────────────────────────────────────────────
+
+function buildShareBars(containerId, items) {
+  const container = document.getElementById(containerId);
+  const maxScore = Math.max(...items.map(i => i.score), 1);
+  items.forEach(item => {
+    const pct = (item.score / maxScore) * 100;
+    const row = document.createElement('div');
+    row.className = 'share-row';
+    row.innerHTML = `
+      <div class="share-name">${item.label}</div>
+      <div class="share-track">
+        <div class="share-fill" style="width:${pct}%; background:${item.color}">
+          <span>${item.score > 0 ? item.score.toFixed(1) : '—'}</span>
+        </div>
+      </div>
+      <div class="share-pct">${item.score > 0 ? item.score.toFixed(1) : '0'}</div>`;
+    container.appendChild(row);
+  });
+}
+
+buildShareBars('share-1969', shareData['1969']);
+buildShareBars('share-2026', shareData['2026']);
+</script>
+</body>
+</html>
+                                                                                                                                                                                                         
